@@ -1,11 +1,13 @@
 import yfinance as yf
 from sklearn.naive_bayes import GaussianNB
-from sklearn.model_selection import train_test_split
+from sklearn.model_selection import train_test_split, TimeSeriesSplit
 from sklearn.metrics import accuracy_score, classification_report, confusion_matrix
+from sklearn.preprocessing import StandardScaler
+from sklearn.pipeline import make_pipeline
 import pandas as pd
 import joblib
 
-
+SEED        = 42
 MODEL_PATH = "model.joblib"
 
 # Ask the user for a stock ticker
@@ -14,14 +16,9 @@ ticker_input = input("Enter stock ticker symbol (e.g., AAPL, MSFT): ").strip().u
 # Use the user input in yfinance
 stock = yf.Ticker(ticker_input)
 
-historical_stock_data = stock.history(period="5y")
-
-# Extract individual columns as separate variables
-open_prices = historical_stock_data['Open']
-high_prices = historical_stock_data['High']
-low_prices = historical_stock_data['Low']
-close_prices = historical_stock_data['Close']
-volume_data = historical_stock_data['Volume']
+historical_stock_data = stock.history(period="15y", auto_adjust=True)
+historical_stock_data = historical_stock_data.dropna(how='all') # Remove rows with all NaN values
+historical_stock_data = historical_stock_data[historical_stock_data['Volume'] > 0]  # Ensure there is volume data
 
 def calculate_rsi(prices, window=14):
     """Calculate Relative Strength Index"""
@@ -55,54 +52,41 @@ def create_features(data):
     
     return features
 
-# Create target variable (1 if price goes up next day, 0 if down)
-def create_target(data):
-    """Create target variable: 1 if next day close > today close, 0 otherwise"""
-    target = (data['Close'].shift(-1) > data['Close']).astype(int)
-    return target
+X_all   = create_features(historical_stock_data).dropna()
+y_all   = (historical_stock_data["Close"].shift(-1) > historical_stock_data["Close"]).astype(int).reindex(X_all.index)
 
-#unsure
-#___________________________________________________________
+X_live  = X_all.iloc[[-1]]               # newest timestamp
+y_live  = y_all.iloc[[-1]]               # not used, but kept for completeness
+X_cv    = X_all.iloc[:-1]                # all but last
+y_cv    = y_all.iloc[:-1]
 
-# Generate features and target
-features = create_features(historical_stock_data)
-target = create_target(historical_stock_data)
+N_SPLITS    = 5  # Number of splits for TimeSeriesSplit
+tscv        = TimeSeriesSplit(n_splits=N_SPLITS)
+pipe        = make_pipeline(StandardScaler(), GaussianNB())
+cv_scores   = []
 
-# Remove rows with NaN values
-features = features.dropna()
-target = target[features.index]
-target = target.dropna()
+for train_idx, test_idx in tscv.split(X_cv):
+    # shuffle *inside* the training slice only
+    train_idx = pd.Series(train_idx).sample(frac=1, random_state=SEED).values
+    X_tr, X_te = X_cv.iloc[train_idx], X_cv.iloc[test_idx]
+    y_tr, y_te = y_cv.iloc[train_idx], y_cv.iloc[test_idx]
 
-# Align features and target
-common_index = features.index.intersection(target.index)
-features = features.loc[common_index]
-target = target.loc[common_index]
+    pipe.fit(X_tr, y_tr)
+    cv_scores.append(accuracy_score(y_te, pipe.predict(X_te)))
 
-#____________________________________________________________
+print(f"Walk‑forward accuracy (mean of {N_SPLITS} folds): "
+      f"{pd.Series(cv_scores).mean():.3f}")
 
-# Split data into training and testing sets
-X_train, X_test, y_train, y_test = train_test_split(
-    features, target, test_size=0.3, random_state=42, stratify=target
-)
+pipe.fit(X_cv, y_cv)
+joblib.dump(pipe, MODEL_PATH)
+print("✅ Final model saved.")
 
-# Train Naive Bayes classifier
-nb_classifier = GaussianNB()
-nb_classifier.fit(X_train, y_train)
+pred_live      = pipe.predict(X_live)[0]
+pred_live_prob = pipe.predict_proba(X_live)[0, pred_live]
 
-# Save the trained model to a file
-joblib.dump(nb_classifier, MODEL_PATH)
-print("✅ Model saved.")
-
-# Make predictions
-y_pred = nb_classifier.predict(X_test)
-y_pred_proba = nb_classifier.predict_proba(X_test)
-
-latest_features = features.iloc[-1:]
-prediction = nb_classifier.predict(latest_features)[0]
-prediction_proba = nb_classifier.predict_proba(latest_features)[0]
-print(f"Prediction: {'RISE' if prediction == 1 else 'FALL'}")
-accuracy = accuracy_score(y_test, y_pred)
-print(f"Accuracy: {accuracy:.4f} ({accuracy*100:.2f}%)")
-print(f"Training samples: {len(X_train)}")
-prediction_date = features.index[-1] + pd.Timedelta(days=1)
-print(f"Prediction is for: {prediction_date.date()}")
+print(f"Prediction for {X_live.index[0].date() + pd.offsets.BDay(1)} "
+      f"= {'RISE' if pred_live else 'FALL'} "
+      f"(probability: {pred_live_prob:.2%})")
+cm = confusion_matrix(y_cv, pipe.predict(X_cv), labels=[1, 0])
+print("Confusion Matrix:")
+print(cm)
