@@ -58,4 +58,4 @@ X_all   = create_features(historical_stock_data).dropna()
 y_all   = (historical_stock_data["Close"].shift(-1) > historical_stock_data["Close"]).astype(int).reindex(X_all.index)
 
 res = naive_bayes.naive_bayes_classifier(X_all, y_all)
-console.result(res[0], res[1], res[2], res[3], res[4], res[6], res[7])
+console.result(res[1], res[2], res[3], res[4], res[5], res[6], res[7])

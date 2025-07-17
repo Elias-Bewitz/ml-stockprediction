@@ -26,7 +26,7 @@ def naive_bayes_classifier (X_all, Y_all):
     pred_live = pipe.predict(X_live)[0]
     pred_live_prob = pipe.predict_proba(X_live)[0, pred_live]
 
-    return X_live, pred_live, pred_live_prob, mw_scores, train_times, mw_pipe, test_times, final_train_time
+    return mw_pipe, X_live, pred_live, pred_live_prob, mw_scores, train_times, test_times, final_train_time
 
 def moving_window_split(X, y, pipeline, n_splits, random_state=None):
     tscv = TimeSeriesSplit(n_splits=n_splits)
