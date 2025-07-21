@@ -8,7 +8,6 @@ import pandas as pd
 import joblib
 import time
 import naive_bayes 
-import console
 import constants as proj_consts
 from data_handler import single_stock
 
@@ -17,5 +16,3 @@ ticker_input = input("Enter stock ticker symbol (e.g., AAPL, MSFT): ").strip().u
 X_all, y_all = single_stock(ticker_input)
 
 res = naive_bayes.naive_bayes_classifier(X_all, y_all)
-
-console.result(res[1], res[2], res[3], res[4], res[5], res[6])

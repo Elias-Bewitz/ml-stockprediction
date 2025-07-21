@@ -9,12 +9,12 @@ def single_stock(ticker):
     historical_stock_data = historical_stock_data.dropna(how='all') # Remove rows with all NaN values
     historical_stock_data = historical_stock_data[historical_stock_data['Volume'] > 0]  # Ensure there is volume data
 
-    X_all   = create_features(historical_stock_data).dropna()
-    y_all   = (historical_stock_data["Close"].shift(-1) > historical_stock_data["Close"]).astype(int).reindex(X_all.index)
+    X_all_features   = create_features(historical_stock_data).dropna()
+    y_all_targets   = (historical_stock_data["Close"].shift(-1) > historical_stock_data["Close"]).astype(int).reindex(X_all_features.index)
 
-    print(f"Collected {len(X_all)} training samples")
+    print(f"Collected {len(X_all_features)} training samples")
 
-    return X_all, y_all
+    return X_all_features, y_all_targets
 
 def multi_stock():
     pass

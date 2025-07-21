@@ -1,9 +1,75 @@
 import pandas as pd
+from functools import wraps
+from typing import Any, List
+from dataclasses import dataclass
+from sklearn.base import BaseEstimator
+import time
 
-def naive_bayes_metrics(model_train_times, model_test_times, final_model_time):
-    print(f"Average training time per fold: {pd.Series(model_train_times).mean():.4f} seconds")
-    print(f"Average testing time per fold: {pd.Series(model_test_times).mean():.4f} seconds\n")
-    print(f"Total training time: {sum(model_train_times):.4f} seconds")
-    print(f"Total testing time: {sum(model_test_times):.4f} seconds\n")
-    print(f"Total time: {sum(model_train_times) + sum(model_test_times):.4f} seconds")
-    print(f"Final model training time: {final_model_time:.4f} seconds\n")
+def with_metrics(fn):
+    @wraps(fn)
+    def wrapper(*args, **kwargs):
+        mm = fn(*args, **kwargs)
+
+        # Now metrics.model_train_times is a list, so wrap it in a Series
+        avg_train = pd.Series(mm.train_times).mean()
+        avg_test  = pd.Series(mm.test_times).mean()
+
+        print(f"Average training time per fold: {avg_train:.4f} seconds")
+        print(f"Average testing time per fold : {avg_test:.4f} seconds\n")
+
+        print(f"Total training time: {sum(mm.train_times):.4f} seconds")
+        print(f"Total testing time : {sum(mm.test_times):.4f} seconds\n")
+
+        total = sum(mm.train_times) + sum(mm.test_times)
+        print(f"Total time: {total:.4f} seconds")
+        print(f"Final model training time: {mm.train_times[-1]:.4f} seconds\n")
+
+        for i, score in enumerate(mm.accuracy_scores):
+            print(f"Walk-forward accuracy (fold {i+1}): {score:.5f}")
+
+        print(f"Overall walk-forward accuracy: {pd.Series(mm.accuracy_scores).mean():.5f}\n")
+
+        print(f"Precision: {mm.precision:.2%}")
+        print(f"Recall: {mm.recall:.2%}")
+        print(f"F1 Score: {mm.f1:.2%}")
+        print(f"Confusion Matrix:\n{mm.confusion_matrix}")
+
+        return mm
+
+    return wrapper
+
+class MethodTimer(BaseEstimator):
+    def __init__(self, estimator):
+        self.estimator = estimator
+        self.train_times = []
+        self.test_times = []
+
+    def fit(self, *args, **kwargs):
+        t0 = time.perf_counter()
+        result = self.estimator.fit(*args, **kwargs)
+        self.train_times.append(time.perf_counter() - t0)
+        return result
+
+    def predict(self, *args, **kwargs):
+        t0 = time.perf_counter()
+        result = self.estimator.predict(*args, **kwargs)
+        self.test_times.append(time.perf_counter() - t0)
+        return result
+
+    def predict_proba(self, *args, **kwargs):
+        return self.estimator.predict_proba(*args, **kwargs)
+
+    def __getattr__(self, attr):
+        return getattr(self.estimator, attr)
+@dataclass
+class ModelMetrics:
+    prediction: Any
+    probability: float
+    train_times: List[float]
+    test_times: List[float]
+    accuracy_scores: List[float]
+    model: Any
+    precision: float = None
+    recall: float = None
+    f1: float = None
+    confusion_matrix: Any = None
