@@ -4,15 +4,24 @@ from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_sc
 from sklearn.preprocessing import StandardScaler
 from sklearn.pipeline import make_pipeline
 import model_metrics
+import runtime_hanlder
 
 @model_metrics.with_metrics
+@runtime_hanlder.register_feature
 def naive_bayes_classifier (X_all, Y_all):
     X_cv, Y_cv, X_live, Y_live = fix_forecast_row(X_all, Y_all)
 
-    pipe = make_pipeline(StandardScaler(), MultinomialNB())
+    pipe = choice_pipe()
+    if "multinomial_nb" in runtime_hanlder.registry:    
+        # Remove rows with any negative values
+        mask = (X_cv >= 0).all(axis=1)
+        X_cv = X_cv[mask]
+        Y_cv = Y_cv[mask]
+        X_live = X_live.clip(lower=0)  # Still clip live data
+
     timed_pipe = model_metrics.MethodTimer(pipe)
 
-    yt, yp, mw_scores, fitted_pipe = moving_window_split(X_cv, Y_cv, timed_pipe, n_splits=5)
+    yt, yp, mw_scores, fitted_pipe = choice_split(X_cv, Y_cv, timed_pipe, n_splits=runtime_hanlder.splitsss)
 
     timed_pipe.fit(X_cv, Y_cv)
 
@@ -33,6 +42,7 @@ def naive_bayes_classifier (X_all, Y_all):
     )
     return metrics
 
+@runtime_hanlder.register_feature
 def moving_window_split(X, y, pipeline, n_splits):
     tscv = TimeSeriesSplit(n_splits=n_splits)
     scores = []
@@ -49,6 +59,7 @@ def moving_window_split(X, y, pipeline, n_splits):
         all_y_pred.extend(pred)
     return all_y_pred, all_y_true, scores, pipeline
 
+@runtime_hanlder.register_feature
 def regular_split(X, y, pipeline):
     X_train, X_test, y_train, y_test = train_test_split(
         X, y, test_size=0.25, random_state=None, shuffle=True, stratify=y
@@ -64,6 +75,7 @@ def regular_split(X, y, pipeline):
         pipeline
     )
 
+@runtime_hanlder.register_feature
 def simple_split(X, y, pipeline, test_frac=0.3):
     n = len(X)
     split_idx = int((1 - test_frac) * n)
@@ -91,3 +103,28 @@ def fix_forecast_row(X_all, y_all):
     X_cv   = X_all.iloc[:-1]
     y_cv   = y_all.iloc[:-1]
     return X_cv, y_cv, X_live, y_live
+
+def choice_split(X, y, pipeline, n_splits):
+    match runtime_hanlder.registry:
+        case _ if "moving_window_split" in runtime_hanlder.registry:
+            return moving_window_split(X, y, pipeline, n_splits)
+        case _ if "regular_split" in runtime_hanlder.registry:
+            return regular_split(X, y, pipeline)
+        case _ if "simple_split" in runtime_hanlder.registry:
+            return simple_split(X, y, pipeline)
+        case _:
+            raise ValueError("No valid split found in registry.")
+        
+def choice_pipe():
+    match runtime_hanlder.registry:
+        case _ if "bernoulli_nb" in runtime_hanlder.registry:
+            print("Using Bernoulli Naive Bayes")
+            return make_pipeline(StandardScaler(), BernoulliNB())
+        case _ if "multinomial_nb" in runtime_hanlder.registry:
+            print("Using Multinomial Naive Bayes")
+            return make_pipeline(StandardScaler(), MultinomialNB())
+        case _ if "gaussian_nb" in runtime_hanlder.registry:
+            print("Using Gaussian Naive Bayes")
+            return make_pipeline(StandardScaler(), GaussianNB())
+        case _:
+            raise ValueError("No valid Naive Bayes classifier found in registry.")

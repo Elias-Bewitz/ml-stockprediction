@@ -10,6 +10,10 @@ def with_metrics(fn):
     def wrapper(*args, **kwargs):
         mm = fn(*args, **kwargs)
 
+        if not mm.train_times or not mm.test_times:
+            print("Warning: No timing data available")
+            return mm
+
         # Now metrics.model_train_times is a list, so wrap it in a Series
         avg_train = pd.Series(mm.train_times).mean()
         avg_test  = pd.Series(mm.test_times).mean()
@@ -22,17 +26,24 @@ def with_metrics(fn):
 
         total = sum(mm.train_times) + sum(mm.test_times)
         print(f"Total time: {total:.4f} seconds")
-        print(f"Final model training time: {mm.train_times[-1]:.4f} seconds\n")
+        
+        if mm.train_times:
+            print(f"Final model training time: {mm.train_times[-1]:.4f} seconds\n")
 
         for i, score in enumerate(mm.accuracy_scores):
             print(f"Walk-forward accuracy (fold {i+1}): {score:.5f}")
 
-        print(f"Overall walk-forward accuracy: {pd.Series(mm.accuracy_scores).mean():.5f}\n")
+        if mm.accuracy_scores:
+            print(f"Overall walk-forward accuracy: {pd.Series(mm.accuracy_scores).mean():.5f}\n")
 
-        print(f"Precision: {mm.precision:.2%}")
-        print(f"Recall: {mm.recall:.2%}")
-        print(f"F1 Score: {mm.f1:.2%}")
-        print(f"Confusion Matrix:\n{mm.confusion_matrix}")
+        if mm.precision is not None:
+            print(f"Precision: {mm.precision:.2%}")
+        if mm.recall is not None:
+            print(f"Recall: {mm.recall:.2%}")
+        if mm.f1 is not None:
+            print(f"F1 Score: {mm.f1:.2%}")
+        if mm.confusion_matrix is not None:
+            print(f"Confusion Matrix:\n{mm.confusion_matrix}")
 
         return mm
 
@@ -48,7 +59,7 @@ class MethodTimer(BaseEstimator):
         t0 = time.perf_counter()
         result = self.estimator.fit(*args, **kwargs)
         self.train_times.append(time.perf_counter() - t0)
-        return result
+        return self
 
     def predict(self, *args, **kwargs):
         t0 = time.perf_counter()
@@ -61,6 +72,7 @@ class MethodTimer(BaseEstimator):
 
     def __getattr__(self, attr):
         return getattr(self.estimator, attr)
+
 @dataclass
 class ModelMetrics:
     prediction: Any

@@ -53,3 +53,16 @@ model
 type of model 
     naive bayes, random forest, etc.
     gaussian naive bayes, multinomial naive bayes, bernoulli naive bayes
+
+
+decorator add feature
+make choice_id()
+    match in regestry
+     case
+     case
+
+q and r nomatter what always quit or restart
+
+make a function for input ... q_support()
+results = reload
+change in json = reload

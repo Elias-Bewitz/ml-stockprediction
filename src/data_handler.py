@@ -1,4 +1,3 @@
-import constants as proj_consts
 import pandas as pd
 import yfinance as yf
 
