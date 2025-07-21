@@ -1,3 +1,4 @@
+from sklearn.ensemble import RandomForestClassifier
 from sklearn.naive_bayes import GaussianNB, MultinomialNB, BernoulliNB
 from sklearn.model_selection import train_test_split, TimeSeriesSplit
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, confusion_matrix
@@ -9,7 +10,7 @@ import model_metrics
 def naive_bayes_classifier (X_all, Y_all):
     X_cv, Y_cv, X_live, Y_live = fix_forecast_row(X_all, Y_all)
 
-    pipe = make_pipeline(StandardScaler(), MultinomialNB())
+    pipe = make_pipeline(StandardScaler(), RandomForestClassifier(n_estimators=100, class_weight='balanced', max_depth=10, min_samples_leaf=5, max_features='sqrt', min_samples_split=5, random_state=42))
     timed_pipe = model_metrics.MethodTimer(pipe)
 
     yt, yp, mw_scores, fitted_pipe = moving_window_split(X_cv, Y_cv, timed_pipe, n_splits=5)
