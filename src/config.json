@@ -1,10 +1,10 @@
 {
-  "splitsss": 5,
-  "moving_window_split": false,
+  "splits": 5,
+  "moving_window_split": true,
   "naive_bayes_classifier": false,
   "regular_split": false,
-  "simple_split": false,
+  "simple_split": true,
   "multinomial_nb": false,
-  "bernoulli_nb": false,
-  "gaussian_nb": false
+  "bernoulli_nb": true,
+  "gaussian_nb": true
 }
