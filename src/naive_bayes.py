@@ -60,6 +60,18 @@ def choice_split(X, y, pipeline, n_splits):
         
 def choice_pipe():
     match constants.registry:
+        case _ if "random_forest" in constants.registry:
+            print("Using Random Forest Classifier")
+            from sklearn.ensemble import RandomForestClassifier
+            return make_pipeline(StandardScaler(), RandomForestClassifier (
+                n_estimators=300, 
+                class_weight='balanced', 
+                max_depth=10, 
+                min_samples_leaf=5, 
+                max_features='sqrt', 
+                min_samples_split=5, 
+                random_state=42)
+                )
         case _ if "bernoulli_nb" in constants.registry:
             print("Using Bernoulli Naive Bayes")
             return make_pipeline(StandardScaler(), BernoulliNB())
