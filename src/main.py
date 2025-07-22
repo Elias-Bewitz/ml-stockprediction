@@ -25,7 +25,7 @@ def main():
             return                   # ⇐ don’t go on to lookup “R”
 
         # only runs when you’ve got a real ticker
-        X, y = single_stock(ticker_input.upper())
+        X, y = single_stock(ticker_input.upper(), constants.prediction_horizon)
         result = naive_bayes.naive_bayes_classifier(X, y)
         logger.log_metrics(result)
     except Exception as e:
@@ -33,14 +33,11 @@ def main():
         time.sleep(1)
 
 if __name__ == "__main__":
-    # 1) start the watcher
     watcher = input_event_on_thread.KeyWatcher()
     watcher.start()
 
-    # 2) run your first query loop
     main()
 
-    # 3) now wait for q/r events
     while True:
         event = watcher.get_event(block=True)  
         if event == 'q':

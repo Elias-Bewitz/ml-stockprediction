@@ -1,11 +1,20 @@
 {
   "splits": 5,
   "moving_window_split": true,
-  "naive_bayes_classifier": false,
   "regular_split": false,
   "simple_split": false,
   "multinomial_nb": false,
   "bernoulli_nb": false,
   "gaussian_nb": false,
-  "random_forest": true
+  "random_forest": true,
+  "prediction_horizon": "1m",
+  "year": "500d",
+  "rf_estimators": 100,
+  "rf_class_weight": "balanced",
+  "rf_max_depth": 5,
+  "rf_min_samples_leaf": 5,
+  "rf_max_features": "sqrt",
+  "rf_min_samples_split": 5,
+  "rf_random_state": 42,
+  "auto_adjust": false
 }

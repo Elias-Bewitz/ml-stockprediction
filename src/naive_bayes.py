@@ -24,6 +24,8 @@ def naive_bayes_classifier (X_all, Y_all):
     timed_pipe.fit(X_cv, Y_cv)
 
     pred_live = timed_pipe.predict(X_live)[0]
+    print(f"Prediction: {'Rise' if pred_live == 1 else 'Fall'}")
+    print(f"Date: {X_live.index[0]}")
     pred_live_prob = timed_pipe.predict_proba(X_live)[0, pred_live]
 
     metrics = model_metrics.ModelMetrics(
@@ -64,13 +66,13 @@ def choice_pipe():
             print("Using Random Forest Classifier")
             from sklearn.ensemble import RandomForestClassifier
             return make_pipeline(StandardScaler(), RandomForestClassifier (
-                n_estimators=300, 
-                class_weight='balanced', 
-                max_depth=10, 
-                min_samples_leaf=5, 
-                max_features='sqrt', 
-                min_samples_split=5, 
-                random_state=42)
+                n_estimators=constants.rf_estimators, 
+                class_weight=constants.rf_class_weight, 
+                max_depth=constants.rf_max_depth, 
+                min_samples_leaf=constants.rf_min_samples_leaf, 
+                max_features=constants.rf_max_features, 
+                min_samples_split=constants.rf_min_samples_split, 
+                random_state=constants.rf_random_state)
                 )
         case _ if "bernoulli_nb" in constants.registry:
             print("Using Bernoulli Naive Bayes")
