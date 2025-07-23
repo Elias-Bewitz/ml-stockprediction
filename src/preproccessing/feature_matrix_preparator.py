@@ -1,12 +1,11 @@
 import pandas as pd
 import yfinance as yf
 import numpy as np
-import constants
-import os
+import constants.constants_injector as constants_injector
 
 def single_stock(ticker, prediction_horizon='1d'):
     stock = yf.Ticker(ticker)
-    historical_stock_data = stock.history(period=constants.year, auto_adjust=constants.auto_adjust)
+    historical_stock_data = stock.history(period=constants_injector.year, auto_adjust=constants_injector.auto_adjust)
     historical_stock_data = historical_stock_data.dropna(how='all')
     historical_stock_data = historical_stock_data[historical_stock_data['Volume'] > 0]
     print(f"Historical stock data shape: {historical_stock_data.shape}")
@@ -17,16 +16,6 @@ def single_stock(ticker, prediction_horizon='1d'):
     horizon_name = {'1d': 'daily', '1w': 'weekly', '1m': 'monthly'}[prediction_horizon]
     print(f"Collected {len(X_all_features)} training samples for {horizon_name} prediction")
 
-    # Save feature matrix and targets to CSV files
-    output_dir = f"output_{ticker}_{horizon_name}"
-    os.makedirs(output_dir, exist_ok=True)
-    
-    X_all_features.to_csv(f"{output_dir}/features.csv")
-    y_all_targets.to_csv(f"{output_dir}/targets.csv", header=['target'])
-    
-    print(f"Feature matrix saved to {output_dir}/features.csv")
-    print(f"Targets saved to {output_dir}/targets.csv")
-    
     return X_all_features, y_all_targets
 
 def create_targets(data, horizon='1d', threshold=0.02):

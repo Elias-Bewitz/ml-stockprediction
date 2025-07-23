@@ -2,11 +2,11 @@ import os
 import threading
 import time
 import sys
-import naive_bayes 
-from data_handler import single_stock
-import input_event_on_thread
-import constants
-import logger
+import models.naive_bayes as naive_bayes 
+from preproccessing.feature_matrix_preparator import single_stock
+import runtime.input_watcher_on_thread as input_watcher_on_thread
+import constants.constants_injector as constants_injector
+import utils.logger as logger
 
 def main():
     try:
@@ -25,7 +25,7 @@ def main():
             return                   # ⇐ don’t go on to lookup “R”
 
         # only runs when you’ve got a real ticker
-        X, y = single_stock(ticker_input.upper(), constants.prediction_horizon)
+        X, y = single_stock(ticker_input.upper(), constants_injector.prediction_horizon)
         result = naive_bayes.naive_bayes_classifier(X, y)
         logger.log_metrics(result)
     except Exception as e:
@@ -33,7 +33,7 @@ def main():
         time.sleep(1)
 
 if __name__ == "__main__":
-    watcher = input_event_on_thread.KeyWatcher()
+    watcher = input_watcher_on_thread.KeyWatcher()
     watcher.start()
 
     main()
@@ -47,12 +47,9 @@ if __name__ == "__main__":
 
         elif event == 'r':
             watcher.stop()                   # tear down old thread
-            constants.reload_constants()     # pick up new constants.json
+            constants_injector.reload_constants()     # pick up new constants.json
             # restart watcher so it’ll capture keys again
-            watcher = input_event_on_thread.KeyWatcher()
+            watcher = input_watcher_on_thread.KeyWatcher()
             watcher.start()
             # restart your main logic
             main()
-
-
-#github test

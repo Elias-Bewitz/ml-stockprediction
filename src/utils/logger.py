@@ -2,7 +2,7 @@ from typing import Any, List
 import logging
 import pandas as pd
 from colorama import init, Fore, Style
-import model_metrics
+import utils.model_metrics as model_metrics
 
 # initialize colorama (on Windows this enables ANSI support)
 init(autoreset=True)

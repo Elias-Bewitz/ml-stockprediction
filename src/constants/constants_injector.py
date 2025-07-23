@@ -1,7 +1,7 @@
 import json
 import os
 
-_CONFIG_PATH = os.path.join(os.path.dirname(__file__), 'config.json')
+_CONFIG_PATH = os.path.join(os.path.dirname(__file__), 'scriptable_stats.json')
 registry = {}
 
 def _load_constants():
